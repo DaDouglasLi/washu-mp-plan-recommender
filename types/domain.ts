@@ -1,4 +1,3 @@
-export type SemesterKey = "fall-2025" | "spring-2026";
 export type PredictionSemester = "fall" | "spring";
 export type ClassYear =
   | "first-year"
@@ -21,13 +20,6 @@ export interface MealPlan {
   name: string;
   points: number;
   costUsd: number;
-}
-
-export interface SemesterRange {
-  key: SemesterKey;
-  label: string;
-  startIso: string;
-  endIso: string;
 }
 
 export interface UploadedFileState {

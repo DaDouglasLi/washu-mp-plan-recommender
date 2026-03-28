@@ -1,4 +1,4 @@
-import { PLAN_BY_ID, SEMESTERS } from "@/lib/meal-rules/constants";
+import { PLAN_BY_ID, SEMESTER_BOUNDARY_RULES } from "@/lib/meal-rules/constants";
 import {
   countCompletedTimeBlocks,
   deriveScheduleFeaturesFromTimeBlocks,
@@ -66,16 +66,26 @@ function weightedAverage(a: number, b: number, weightForA: number): number {
   return a * weightForA + b * (1 - weightForA);
 }
 
-function semesterRange(key: "fall-2025" | "spring-2026"): { startMs: number; endMs: number } {
-  const range = SEMESTERS.find((semester) => semester.key === key);
-  if (!range) {
-    throw new Error(`Missing semester range for ${key}.`);
+function semesterRange(
+  term: "fall" | "spring",
+  year: number,
+): { startMs: number; endMs: number } {
+  const rule = SEMESTER_BOUNDARY_RULES[term];
+  return {
+    startMs: new Date(year, rule.startMonth - 1, rule.startDay, 0, 0, 0, 0).getTime(),
+    endMs: new Date(year, rule.endMonth - 1, rule.endDay, 23, 59, 59, 999).getTime(),
+  };
+}
+
+function targetPredictionYear(mode: PredictionSemester, now: Date): number {
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+
+  if (mode === "spring") {
+    return month <= 5 ? year : year + 1;
   }
 
-  return {
-    startMs: new Date(`${range.startIso}T00:00:00`).getTime(),
-    endMs: new Date(`${range.endIso}T23:59:59.999`).getTime(),
-  };
+  return month <= 8 ? year : year + 1;
 }
 
 function inRange(date: Date, startMs: number, endMs: number): boolean {
@@ -89,23 +99,31 @@ function selectRelevantTransactions(
 ): {
   selected: ParsedMealTransaction[];
   ignoredOlderSpringData: boolean;
+  excludedPartialCurrentSpring: boolean;
 } {
-  const fall = semesterRange("fall-2025");
-  const spring = semesterRange("spring-2026");
+  const predictionYear = targetPredictionYear(mode, new Date());
+  const previousFall = semesterRange("fall", predictionYear - 1);
+  const currentSpring = semesterRange("spring", predictionYear);
 
-  const previousFallTxns = txns.filter((txn) => inRange(txn.date, fall.startMs, fall.endMs));
-  const springTxns = txns.filter((txn) => inRange(txn.date, spring.startMs, spring.endMs));
+  const previousFallTxns = txns.filter((txn) =>
+    inRange(txn.date, previousFall.startMs, previousFall.endMs),
+  );
+  const springTxns = txns.filter((txn) =>
+    inRange(txn.date, currentSpring.startMs, currentSpring.endMs),
+  );
 
   if (mode === "spring") {
     return {
       selected: previousFallTxns,
       ignoredOlderSpringData: springTxns.length > 0,
+      excludedPartialCurrentSpring: false,
     };
   }
 
   return {
     selected: [...previousFallTxns, ...springTxns],
     ignoredOlderSpringData: false,
+    excludedPartialCurrentSpring: false,
   };
 }
 
@@ -218,6 +236,12 @@ export function runFullAnalysis(input: PipelineInput): PipelineOutput {
       "Older spring transaction rows were ignored so spring-mode modeling stays anchored to the previous fall term.",
     );
   }
+  if (relevantTransactions.excludedPartialCurrentSpring) {
+    prediction.notes.push(
+      "Current spring transaction history appeared incomplete and was excluded from fall-mode behavioral modeling.",
+    );
+  }
+
   const historicalSpend = relevantTransactions.selected.reduce((sum, t) => sum + t.amount, 0);
   const rolloverEstimate = estimateRolloverPoints(input, historicalSpend);
 

@@ -44,8 +44,12 @@ The recommender explicitly scores this trade-off and penalizes unnecessary overb
 
 ### Historical semester boundaries used by the model
 
-- Fall 2025: about Aug 20, 2025 to Dec 20, 2025
-- Spring 2026: about Jan 10, 2026 to May 10, 2026
+The model uses reusable rough semester windows instead of a single fixed academic year:
+
+- Fall: approximately `Aug 20` to `Dec 20`
+- Spring: approximately `Jan 10` to `May 10`
+
+The year is chosen automatically from the current date so the same transaction-filtering logic can keep working across future years.
 
 ### Policy logic encoded
 
@@ -74,7 +78,7 @@ Required inputs:
 
 Model behavior:
 
-- uses fall behavior + manual campus-time shift to estimate spring demand,
+- uses the previous fall transaction window only, plus manual campus-time shift, to estimate spring demand,
 - estimates rollover from fall into spring,
 - optional user inputs improve rollover accuracy:
   - known fall plan,
@@ -91,7 +95,7 @@ Required inputs:
 
 Model behavior:
 
-- uses both `Fall 2025` and `Spring 2026` transaction history to predict `Fall 2026`,
+- uses the previous fall and current spring transaction windows together as the historical baseline,
 - compares historical fall/spring campus-time patterns against manually entered future fall time,
 - marks fall forecasts as higher uncertainty than spring.
 
