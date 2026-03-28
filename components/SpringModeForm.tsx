@@ -263,7 +263,7 @@ export function SpringModeForm() {
         <div className="grid gap-4">
           <FileUploadField
             label="Meal transactions CSV"
-            description="Historical meal points transactions with date/time, amount, and merchant."
+            description="Upload the Mealpoints account statement CSV from Atrium: Account Management -> Account Statements -> choose Mealpoints -> set period to Last 9 Month."
             required
             accept=".csv"
             fileName={mealHistory.fileName}

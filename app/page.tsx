@@ -13,10 +13,16 @@ export default function Home() {
     <main className="min-h-screen bg-slate-100 py-8">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4">
         <section className="rounded-2xl bg-gradient-to-r from-indigo-700 to-violet-700 p-8 text-white shadow-md">
-          <h1 className="text-3xl font-bold">WashU Meal Plan Optimizer</h1>
+          <h1 className="text-3xl font-bold">
+            WashU Meal Plan Optimizer (based on 2026-27 meal point policy)
+          </h1>
           <p className="mt-2 max-w-3xl text-indigo-100">
             Predict your next-semester WashU Dining spending from local uploads, then choose the
             cheapest practical meal plan instead of overbuying points.
+          </p>
+          <p className="mt-2 max-w-3xl text-sm text-indigo-100">
+            Assumption: if a student starts living off campus, the model assumes they will not
+            move back to a dorm later in the academic year.
           </p>
         </section>
 
