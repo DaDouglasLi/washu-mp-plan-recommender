@@ -1,4 +1,4 @@
-import { PLAN_BY_ID } from "@/lib/meal-rules/constants";
+import { PLAN_BY_ID, SEMESTERS } from "@/lib/meal-rules/constants";
 import {
   countCompletedTimeBlocks,
   deriveScheduleFeaturesFromTimeBlocks,
@@ -12,6 +12,7 @@ import {
   ClassYear,
   MealPlanId,
   OnCampusTimeBlock,
+  ParsedMealTransaction,
   PredictionSemester,
   ScheduleFeatures,
 } from "@/types/domain";
@@ -65,6 +66,58 @@ function weightedAverage(a: number, b: number, weightForA: number): number {
   return a * weightForA + b * (1 - weightForA);
 }
 
+function semesterRange(key: "fall-2026" | "spring-2027"): { startMs: number; endMs: number } {
+  const range = SEMESTERS.find((semester) => semester.key === key);
+  if (!range) {
+    throw new Error(`Missing semester range for ${key}.`);
+  }
+
+  return {
+    startMs: new Date(`${range.startIso}T00:00:00`).getTime(),
+    endMs: new Date(`${range.endIso}T23:59:59.999`).getTime(),
+  };
+}
+
+function inRange(date: Date, startMs: number, endMs: number): boolean {
+  const timestamp = date.getTime();
+  return timestamp >= startMs && timestamp <= endMs;
+}
+
+function selectRelevantTransactions(
+  txns: ParsedMealTransaction[],
+  mode: PredictionSemester,
+): {
+  selected: ParsedMealTransaction[];
+  ignoredOlderSpringData: boolean;
+  excludedPartialCurrentSpring: boolean;
+} {
+  const fall = semesterRange("fall-2026");
+  const spring = semesterRange("spring-2027");
+
+  const previousFallTxns = txns.filter((txn) => inRange(txn.date, fall.startMs, fall.endMs));
+  const springTxns = txns.filter((txn) => inRange(txn.date, spring.startMs, spring.endMs));
+
+  if (mode === "spring") {
+    return {
+      selected: previousFallTxns,
+      ignoredOlderSpringData: springTxns.length > 0,
+      excludedPartialCurrentSpring: false,
+    };
+  }
+
+  const hasCompleteSpringCoverage =
+    springTxns.length > 0 &&
+    springTxns[springTxns.length - 1].date.getTime() >= spring.endMs;
+
+  return {
+    selected: hasCompleteSpringCoverage
+      ? [...previousFallTxns, ...springTxns]
+      : previousFallTxns,
+    ignoredOlderSpringData: false,
+    excludedPartialCurrentSpring: springTxns.length > 0 && !hasCompleteSpringCoverage,
+  };
+}
+
 function resolveScheduleFeatures(
   blocks: OnCampusTimeBlock[] | undefined,
   label: string,
@@ -91,10 +144,13 @@ function resolveScheduleFeatures(
 
 export function runFullAnalysis(input: PipelineInput): PipelineOutput {
   const txns = parseMealHistory(input.mealRows);
-  if (txns.length < 8) {
-    throw new Error("Not enough valid meal transactions found. Upload a richer history file.");
+  const relevantTransactions = selectRelevantTransactions(txns, input.mode);
+  if (relevantTransactions.selected.length < 8) {
+    throw new Error(
+      "Not enough valid meal transactions found for the relevant historical semester data.",
+    );
   }
-  const categorized = categorizeTransactions(txns);
+  const categorized = categorizeTransactions(relevantTransactions.selected);
 
   const previousFall = resolveScheduleFeatures(
     input.previousFallCampusTime,
@@ -166,8 +222,18 @@ export function runFullAnalysis(input: PipelineInput): PipelineOutput {
     baselineSchedule,
     targetSchedule,
   });
+  if (relevantTransactions.ignoredOlderSpringData) {
+    prediction.notes.push(
+      "Older spring transaction rows were ignored so spring-mode modeling stays anchored to the previous fall term.",
+    );
+  }
+  if (relevantTransactions.excludedPartialCurrentSpring) {
+    prediction.notes.push(
+      "Current spring transaction history appeared incomplete and was excluded from fall-mode behavioral modeling.",
+    );
+  }
 
-  const historicalSpend = txns.reduce((sum, t) => sum + t.amount, 0);
+  const historicalSpend = relevantTransactions.selected.reduce((sum, t) => sum + t.amount, 0);
   const rolloverEstimate = estimateRolloverPoints(input, historicalSpend);
 
   const recommendation = recommendPlan({
@@ -181,7 +247,7 @@ export function runFullAnalysis(input: PipelineInput): PipelineOutput {
 
   return {
     stats: {
-      parsedMeals: txns.length,
+      parsedMeals: relevantTransactions.selected.length,
       previousFallTimeBlocks: previousFall.blockCount,
       previousSpringTimeBlocks: previousSpring?.blockCount ?? 0,
       futureSpringTimeBlocks: futureSpring?.blockCount ?? 0,
