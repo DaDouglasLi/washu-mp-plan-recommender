@@ -1,8 +1,44 @@
 # WashU Meal Plan Optimizer
 
-A local-first MVP web app that helps Washington University in St. Louis students choose a meal plan for their **next semester** by combining historical meal-point spending with class-schedule patterns.
+A local-first MVP web app that helps Washington University in St. Louis students choose a meal plan for their **next semester** by combining historical meal-point spending with manually entered on-campus time patterns.
 
-Core prediction and recommendation logic runs locally in the app. OpenAI is used only after local analysis finishes to generate a clearer human-readable explanation from summarized results.
+The core prediction and recommendation logic remains deterministic and local. OpenAI is used only after the local analysis finishes to generate a clearer, more nuanced explanation of the computed result.
+
+## Prompt fit
+
+This project is meant to answer the prompt directly: **build an AI-powered tool I personally wish existed**.
+
+### 1) Specific user scenario and problem
+
+The user is a WashU student trying to choose the cheapest practical meal plan for the next semester. This is a real decision with confusing tradeoffs:
+
+- spending changes when class cadence and campus time change
+- leftover and rollover rules make "cover everything" a bad heuristic
+- students often do not know whether a lower plan plus small out-of-pocket spending is smarter than buying a larger plan
+
+This tool exists to turn that unclear decision into a practical recommendation grounded in the student's own transaction history.
+
+### 2) Non-trivial AI component
+
+The app includes a real AI layer, but it is intentionally used in a controlled way.
+
+- the local model first computes the prediction and recommendation deterministically
+- the app then sends a structured summary of the computed result to OpenAI
+- OpenAI generates a more detailed advisor-style explanation of:
+  - why the recommended plan won
+  - what cheaper or safer alternatives also make sense
+  - what uncertainty or caveats matter
+
+This is a non-trivial AI component because it uses structured prompting, a server-side explanation route, constrained grounding on computed results, and fallback behavior when the API is unavailable.
+
+### 3) Clear system design and AI integration
+
+The system has two layers:
+
+- **Local analysis layer:** parses the meal CSV, derives behavioral features, applies budget-pressure logic, compares campus-time patterns, predicts next-semester spend, and scores meal plans.
+- **AI explanation layer:** takes only the summarized analysis output and generates a clearer human explanation.
+
+The AI does **not** choose the plan and does **not** process raw uploaded files. The recommendation itself is still produced by the local model logic.
 
 ## Project overview
 
@@ -12,6 +48,15 @@ This app is intentionally designed around one core objective:
 
 The optimizer is **not** trying to maximize meal-point usage, and it is **not** trying to force a plan that covers 100% of predicted spending.  
 In many cases, a lower plan plus modest out-of-pocket spending (Bear Bucks or card) is cheaper than buying a higher plan with expensive unused points.
+
+## AI + model roles
+
+The project has two clearly separated layers:
+
+- **Local model logic:** parses the transaction CSV, derives behavioral features, compares campus-time patterns, predicts next-semester spend, and scores meal plans.
+- **AI explanation layer:** takes the already-computed structured result and turns it into a clearer explanation of why the recommendation was chosen, what tradeoffs exist, and which alternatives also make sense.
+
+OpenAI does **not** decide the plan. The app decides the plan locally first, then asks OpenAI to explain it.
 
 ## Problem statement
 
@@ -149,6 +194,7 @@ Extracted features include:
 
 - deterministic feature-based estimation (no cloud AI, no training pipeline)
 - schedule-shift multipliers adjust lunch/snack/dinner demand by context change
+- lightweight budget-pressure logic detects possible depletion or burn-down behavior late in the semester
 - optional profile labels for explainability:
   - Lunch-Driven
   - Frequent Afternoon Snacker
@@ -166,6 +212,13 @@ For each eligible plan:
 - computes expected total cost = plan cost + expected shortfall,
 - adds practicality penalty when shortfall becomes too large,
 - adds waste/forfeiture penalty (stronger in spring).
+
+### 7) AI-generated explanation
+
+- runs only after the local analysis is complete
+- receives only summarized analysis results, never raw uploaded files
+- explains why the recommended plan won, what the cheaper and safer alternatives are, and where uncertainty remains
+- falls back to a local summary if the OpenAI API is unavailable
 
 Outputs:
 
@@ -215,12 +268,15 @@ public/fixtures/
   sample CSV files for quick testing
 ```
 
-## Local development
+## Run locally
+
+### 1) Install dependencies
 
 ```bash
 npm install
-npm run dev
 ```
+
+### 2) Configure environment variables
 
 Create and fill `.env` before using AI explanations:
 
@@ -229,17 +285,21 @@ OPENAI_API_KEY=your_key_here
 OPENAI_MODEL=gpt-5.4-mini
 ```
 
+If you leave `OPENAI_API_KEY` empty or invalid, the app will still run and will fall back to a local explanation summary.
+
+### 3) Start the app
+
+```bash
+npm run dev
+```
+
 Then open [http://localhost:3000](http://localhost:3000).
 
-## Vercel deployment
+### 4) Build locally
 
-This app now uses a server route for AI explanations, so it should run as a normal Next.js deployment instead of a static export.
-
-1. Push repo to GitHub.
-2. Import project in Vercel.
-3. Framework preset: Next.js.
-4. Build command: `npm run build`.
-5. Add `OPENAI_API_KEY` and optionally `OPENAI_MODEL` in project environment variables.
+```bash
+npm run build
+```
 
 ## Privacy model
 
@@ -259,7 +319,7 @@ This app now uses a server route for AI explanations, so it should run as a norm
 - Merchant-based campus detection may misclassify ambiguous rows.
 - Fall prediction has structurally higher uncertainty than spring.
 - Forecast is practical guidance, not a guarantee.
-- Current implementation assumes one primary transaction-history file and schedule exports with parseable structure.
+- Current implementation assumes one primary transaction-history CSV and manually entered on-campus time.
 
 ## Future improvements
 
