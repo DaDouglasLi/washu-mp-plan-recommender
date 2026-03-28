@@ -84,6 +84,21 @@ export default function Home() {
             loaded data.
           </p>
         </SectionCard>
+
+        <SectionCard title="7) Support The Project">
+          <p className="text-sm text-slate-700">
+            If you found this useful, please give the project a star on{" "}
+            <a
+              href="https://github.com/DaDouglasLi/washu-mp-plan-recommender.git"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-indigo-700 underline underline-offset-2"
+            >
+              GitHub
+            </a>
+            .
+          </p>
+        </SectionCard>
       </div>
     </main>
   );

@@ -223,13 +223,9 @@ Then open [http://localhost:3000](http://localhost:3000).
 
 ## Vercel deployment
 
-This app is configured as a static export (`next.config.ts` uses `output: "export"`), suitable for static hosting.
+This app is already deployed through Vercel at:
 
-1. Push repo to GitHub.
-2. Import project in Vercel.
-3. Framework preset: Next.js.
-4. Build command: `npm run build`.
-5. Output is static and requires no backend services.
+[https://washu-mp-plan-recommender-p4cax8s75-dadouglaslis-projects.vercel.app/](https://washu-mp-plan-recommender-p4cax8s75-dadouglaslis-projects.vercel.app/)
 
 ## Privacy model
 
