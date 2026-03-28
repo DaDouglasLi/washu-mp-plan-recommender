@@ -326,7 +326,12 @@ export function FallModeForm() {
                 Full-day campus presence was assumed because you live on campus.
               </p>
             ) : null}
-            <ResultsDashboard result={result} />
+            <ResultsDashboard
+              result={result}
+              predictionSemester="fall"
+              classYear={classYear}
+              livingOnCampus={livingOnCampus}
+            />
           </div>
         ) : (
           <p className="text-sm text-slate-600">

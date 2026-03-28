@@ -349,7 +349,12 @@ export function SpringModeForm() {
                 Full-day campus presence was assumed because you live on campus.
               </p>
             ) : null}
-            <ResultsDashboard result={result} />
+            <ResultsDashboard
+              result={result}
+              predictionSemester="spring"
+              classYear={classYear}
+              livingOnCampus={livingOnCampus}
+            />
           </div>
         ) : (
           <p className="text-sm text-slate-600">

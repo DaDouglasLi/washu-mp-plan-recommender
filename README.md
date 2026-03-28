@@ -2,6 +2,8 @@
 
 A local-first MVP web app that helps Washington University in St. Louis students choose a meal plan for their **next semester** by combining historical meal-point spending with class-schedule patterns.
 
+Core prediction and recommendation logic runs locally in the app. OpenAI is used only after local analysis finishes to generate a clearer human-readable explanation from summarized results.
+
 ## Project overview
 
 This app is intentionally designed around one core objective:
@@ -177,9 +179,10 @@ Outputs:
 - Next.js (App Router) + TypeScript
 - Tailwind CSS
 - `papaparse` for CSV parsing
+- OpenAI JavaScript SDK for server-side explanation generation
 - `recharts` for lightweight client-side charts
 
-All logic executes client-side in the browser.
+Core analysis executes locally in the browser. The optional explanation layer runs on the server and sends only summarized analysis results to OpenAI.
 
 ## Project structure
 
@@ -219,26 +222,36 @@ npm install
 npm run dev
 ```
 
+Create and fill `.env` before using AI explanations:
+
+```bash
+OPENAI_API_KEY=your_key_here
+OPENAI_MODEL=gpt-5.4-mini
+```
+
 Then open [http://localhost:3000](http://localhost:3000).
 
 ## Vercel deployment
 
-This app is configured as a static export (`next.config.ts` uses `output: "export"`), suitable for static hosting.
+This app now uses a server route for AI explanations, so it should run as a normal Next.js deployment instead of a static export.
 
 1. Push repo to GitHub.
 2. Import project in Vercel.
 3. Framework preset: Next.js.
 4. Build command: `npm run build`.
-5. Output is static and requires no backend services.
+5. Add `OPENAI_API_KEY` and optionally `OPENAI_MODEL` in project environment variables.
 
 ## Privacy model
 
 - no login/auth
 - no backend database
-- no server-side storage
+- no server-side storage of uploaded files
 - no analytics tracking
 - uploads processed only in browser memory
 - refreshing page clears loaded data
+- raw uploaded files stay local
+- only summarized analysis results are sent to OpenAI for explanation generation
+- if the OpenAI API is unavailable, the app falls back to a local explanation summary
 
 ## Assumptions and limitations
 

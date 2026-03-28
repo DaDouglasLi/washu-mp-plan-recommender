@@ -1,18 +1,109 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  AnalysisExplanationPayload,
+  ExplanationResponse,
+} from "@/lib/explanation-contract";
+import {
+  buildFallbackExplanation,
+  buildFallbackStatusMessage,
+} from "@/lib/explanation-fallback";
 import { PipelineOutput } from "@/lib/analysis/pipeline";
+import { ClassYear, PredictionSemester } from "@/types/domain";
 
 interface ResultsDashboardProps {
   result: PipelineOutput;
+  predictionSemester: PredictionSemester;
+  classYear: ClassYear;
+  livingOnCampus: boolean;
 }
 
 function usd(value: number): string {
   return `$${Math.round(value).toLocaleString()}`;
 }
 
-export function ResultsDashboard({ result }: ResultsDashboardProps) {
+function toExplanationPayload(
+  result: PipelineOutput,
+  predictionSemester: PredictionSemester,
+  classYear: ClassYear,
+  livingOnCampus: boolean,
+): AnalysisExplanationPayload {
+  return {
+    predictionSemester,
+    onCampusLiving: livingOnCampus,
+    classYear,
+    predictedTotalSpend: result.prediction.predictedTotalSpend,
+    categoryBreakdown: {
+      lunch: result.prediction.categoryBreakdown.lunch,
+      snack: result.prediction.categoryBreakdown.snack,
+      dinner: result.prediction.categoryBreakdown.dinner,
+      misc: result.prediction.categoryBreakdown.miscellaneous,
+    },
+    recommendedPlan: {
+      name: result.recommendation.recommended.plan.name,
+      points: result.recommendation.recommended.plan.points,
+      costUsd: result.recommendation.recommended.plan.costUsd,
+      availablePoints: result.recommendation.recommended.availablePoints,
+      expectedShortfall: result.recommendation.recommended.expectedShortfall,
+      expectedWaste: result.recommendation.recommended.expectedWaste,
+      expectedTotalCost: result.recommendation.recommended.expectedTotalCost,
+      practicalityPenalty: result.recommendation.recommended.practicalityPenalty,
+      rationale: result.recommendation.recommended.rationale,
+    },
+    cheapestPracticalPlan: {
+      name: result.recommendation.cheapestPractical.plan.name,
+      points: result.recommendation.cheapestPractical.plan.points,
+      costUsd: result.recommendation.cheapestPractical.plan.costUsd,
+      availablePoints: result.recommendation.cheapestPractical.availablePoints,
+      expectedShortfall: result.recommendation.cheapestPractical.expectedShortfall,
+      expectedWaste: result.recommendation.cheapestPractical.expectedWaste,
+      expectedTotalCost: result.recommendation.cheapestPractical.expectedTotalCost,
+      practicalityPenalty: result.recommendation.cheapestPractical.practicalityPenalty,
+      rationale: result.recommendation.cheapestPractical.rationale,
+    },
+    conservativeOption: {
+      name: result.recommendation.conservative.plan.name,
+      points: result.recommendation.conservative.plan.points,
+      costUsd: result.recommendation.conservative.plan.costUsd,
+      availablePoints: result.recommendation.conservative.availablePoints,
+      expectedShortfall: result.recommendation.conservative.expectedShortfall,
+      expectedWaste: result.recommendation.conservative.expectedWaste,
+      expectedTotalCost: result.recommendation.conservative.expectedTotalCost,
+      practicalityPenalty: result.recommendation.conservative.practicalityPenalty,
+      rationale: result.recommendation.conservative.rationale,
+    },
+    uncertaintyScore: result.prediction.uncertaintyScore,
+    profileLabel: result.prediction.profileLabel ?? null,
+    budgetSignals: result.prediction.budgetSignals ?? null,
+    rolloverEstimate: result.rolloverEstimate,
+    reasoningFacts: [
+      ...result.recommendation.reasoning,
+      ...result.recommendation.recommended.rationale,
+      ...result.recommendation.cheapestPractical.rationale,
+      ...result.recommendation.conservative.rationale,
+      ...result.prediction.notes,
+    ],
+  };
+}
+
+export function ResultsDashboard({
+  result,
+  predictionSemester,
+  classYear,
+  livingOnCampus,
+}: ResultsDashboardProps) {
   const { prediction, recommendation, rolloverEstimate } = result;
+  const explanationPayload = useMemo(
+    () => toExplanationPayload(result, predictionSemester, classYear, livingOnCampus),
+    [classYear, livingOnCampus, predictionSemester, result],
+  );
+  const [aiExplanation, setAiExplanation] = useState<ExplanationResponse>(
+    buildFallbackExplanation(explanationPayload),
+  );
+  const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
+  const [explanationStatus, setExplanationStatus] = useState("");
 
   const categoryData = [
     { name: "Lunch", points: prediction.categoryBreakdown.lunch },
@@ -27,6 +118,65 @@ export function ResultsDashboard({ result }: ResultsDashboardProps) {
     shortfall: planScore.expectedShortfall,
     waste: planScore.expectedWaste,
   }));
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadExplanation() {
+      setIsLoadingExplanation(true);
+      setExplanationStatus("");
+      setAiExplanation(buildFallbackExplanation(explanationPayload));
+
+      try {
+        const response = await fetch("/api/explain", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(explanationPayload),
+        });
+
+        if (!response.ok) {
+          const errorBody = (await response.json().catch(() => null)) as
+            | { error?: string }
+            | null;
+          throw new Error(errorBody?.error || "Explanation request failed.");
+        }
+
+        const data = (await response.json()) as ExplanationResponse;
+        if (isCancelled) {
+          return;
+        }
+
+        setAiExplanation({
+          explanation: data.explanation,
+          alternatives: data.alternatives ?? [],
+          caveats: data.caveats ?? [],
+        });
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setAiExplanation(buildFallbackExplanation(explanationPayload));
+        setExplanationStatus(
+          buildFallbackStatusMessage(
+            error instanceof Error ? error.message : undefined,
+          ),
+        );
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingExplanation(false);
+        }
+      }
+    }
+
+    void loadExplanation();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [explanationPayload]);
 
   return (
     <div className="space-y-6">
@@ -101,20 +251,37 @@ export function ResultsDashboard({ result }: ResultsDashboardProps) {
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <p className="text-sm font-medium text-slate-900">Reasoning snapshot</p>
-        <p className="mt-2 text-sm text-slate-700">
+        <p className="text-sm font-medium text-slate-900">AI explanation</p>
+        {isLoadingExplanation ? (
+          <p className="mt-2 text-sm text-slate-600">Generating AI explanation...</p>
+        ) : null}
+        {explanationStatus ? (
+          <p className="mt-2 text-sm text-amber-800">{explanationStatus}</p>
+        ) : null}
+        <p className="mt-2 text-sm text-slate-700">{aiExplanation.explanation}</p>
+        <p className="mt-3 text-sm text-slate-700">
           Budget signals: depletion {Math.round(prediction.budgetSignals.depletionScore * 100)}%,
           burn-down {Math.round(prediction.budgetSignals.burnDownScore * 100)}%.
         </p>
-        <ul className="mt-2 space-y-1 text-sm text-slate-700">
-          {recommendation.reasoning.map((line) => (
-            <li key={line}>- {line}</li>
-          ))}
-          {prediction.notes.map((line) => (
-            <li key={line}>- {line}</li>
-          ))}
-          <li>- Rollover estimate used: {Math.round(rolloverEstimate)} points.</li>
-        </ul>
+        {aiExplanation.alternatives.length > 0 ? (
+          <div className="mt-3">
+            <p className="text-sm font-medium text-slate-900">Alternatives</p>
+            <ul className="mt-1 space-y-1 text-sm text-slate-700">
+              {aiExplanation.alternatives.map((line) => (
+                <li key={line}>- {line}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        <div className="mt-3">
+          <p className="text-sm font-medium text-slate-900">Caveats</p>
+          <ul className="mt-1 space-y-1 text-sm text-slate-700">
+            {aiExplanation.caveats.map((line) => (
+              <li key={line}>- {line}</li>
+            ))}
+            <li>- Rollover estimate used: {Math.round(rolloverEstimate)} points.</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
