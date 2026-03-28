@@ -19,14 +19,14 @@ export const SEMESTERS: SemesterRange[] = [
   {
     key: "fall-2025",
     label: "Fall 2025",
-    startIso: "2025-08-25",
-    endIso: "2025-12-17",
+    startIso: "2025-08-20",
+    endIso: "2025-12-20",
   },
   {
     key: "spring-2026",
     label: "Spring 2026",
-    startIso: "2026-01-12",
-    endIso: "2026-05-06",
+    startIso: "2026-01-10",
+    endIso: "2026-05-10",
   },
 ];
 

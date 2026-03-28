@@ -89,7 +89,6 @@ function selectRelevantTransactions(
 ): {
   selected: ParsedMealTransaction[];
   ignoredOlderSpringData: boolean;
-  excludedPartialCurrentSpring: boolean;
 } {
   const fall = semesterRange("fall-2025");
   const spring = semesterRange("spring-2026");
@@ -101,20 +100,12 @@ function selectRelevantTransactions(
     return {
       selected: previousFallTxns,
       ignoredOlderSpringData: springTxns.length > 0,
-      excludedPartialCurrentSpring: false,
     };
   }
 
-  const hasCompleteSpringCoverage =
-    springTxns.length > 0 &&
-    springTxns[springTxns.length - 1].date.getTime() >= spring.endMs;
-
   return {
-    selected: hasCompleteSpringCoverage
-      ? [...previousFallTxns, ...springTxns]
-      : previousFallTxns,
+    selected: [...previousFallTxns, ...springTxns],
     ignoredOlderSpringData: false,
-    excludedPartialCurrentSpring: springTxns.length > 0 && !hasCompleteSpringCoverage,
   };
 }
 
@@ -227,12 +218,6 @@ export function runFullAnalysis(input: PipelineInput): PipelineOutput {
       "Older spring transaction rows were ignored so spring-mode modeling stays anchored to the previous fall term.",
     );
   }
-  if (relevantTransactions.excludedPartialCurrentSpring) {
-    prediction.notes.push(
-      "Current spring transaction history appeared incomplete and was excluded from fall-mode behavioral modeling.",
-    );
-  }
-
   const historicalSpend = relevantTransactions.selected.reduce((sum, t) => sum + t.amount, 0);
   const rolloverEstimate = estimateRolloverPoints(input, historicalSpend);
 

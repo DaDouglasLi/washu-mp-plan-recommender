@@ -44,8 +44,8 @@ The recommender explicitly scores this trade-off and penalizes unnecessary overb
 
 ### Historical semester boundaries used by the model
 
-- Fall 2025: Aug 25, 2025 to Dec 17, 2025
-- Spring 2026: Jan 12, 2026 to May 6, 2026
+- Fall 2025: about Aug 20, 2025 to Dec 20, 2025
+- Spring 2026: about Jan 10, 2026 to May 10, 2026
 
 ### Policy logic encoded
 
@@ -91,6 +91,7 @@ Required inputs:
 
 Model behavior:
 
+- uses both `Fall 2025` and `Spring 2026` transaction history to predict `Fall 2026`,
 - compares historical fall/spring campus-time patterns against manually entered future fall time,
 - marks fall forecasts as higher uncertainty than spring.
 
