@@ -42,10 +42,10 @@ The recommender explicitly scores this trade-off and penalizes unnecessary overb
 - Apartment: 922 points, $1358
 - Off-Campus: 544 points, $844
 
-### Semester ranges
+### Historical semester boundaries used by the model
 
-- Fall 2026: Aug 14, 2026 to Dec 17, 2026
-- Spring 2027: Jan 15, 2027 to May 13, 2027
+- Fall 2025: Aug 25, 2025 to Dec 17, 2025
+- Spring 2026: Jan 12, 2026 to May 6, 2026
 
 ### Policy logic encoded
 

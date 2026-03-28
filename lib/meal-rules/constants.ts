@@ -17,16 +17,16 @@ export const MEAL_PLANS: MealPlan[] = [
 
 export const SEMESTERS: SemesterRange[] = [
   {
-    key: "fall-2026",
-    label: "Fall 2026",
-    startIso: "2026-08-14",
-    endIso: "2026-12-17",
+    key: "fall-2025",
+    label: "Fall 2025",
+    startIso: "2025-08-25",
+    endIso: "2025-12-17",
   },
   {
-    key: "spring-2027",
-    label: "Spring 2027",
-    startIso: "2027-01-15",
-    endIso: "2027-05-13",
+    key: "spring-2026",
+    label: "Spring 2026",
+    startIso: "2026-01-12",
+    endIso: "2026-05-06",
   },
 ];
 

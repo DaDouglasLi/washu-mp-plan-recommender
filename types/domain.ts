@@ -1,4 +1,4 @@
-export type SemesterKey = "fall-2026" | "spring-2027";
+export type SemesterKey = "fall-2025" | "spring-2026";
 export type PredictionSemester = "fall" | "spring";
 export type ClassYear =
   | "first-year"

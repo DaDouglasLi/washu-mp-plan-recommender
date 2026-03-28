@@ -66,7 +66,7 @@ function weightedAverage(a: number, b: number, weightForA: number): number {
   return a * weightForA + b * (1 - weightForA);
 }
 
-function semesterRange(key: "fall-2026" | "spring-2027"): { startMs: number; endMs: number } {
+function semesterRange(key: "fall-2025" | "spring-2026"): { startMs: number; endMs: number } {
   const range = SEMESTERS.find((semester) => semester.key === key);
   if (!range) {
     throw new Error(`Missing semester range for ${key}.`);
@@ -91,8 +91,8 @@ function selectRelevantTransactions(
   ignoredOlderSpringData: boolean;
   excludedPartialCurrentSpring: boolean;
 } {
-  const fall = semesterRange("fall-2026");
-  const spring = semesterRange("spring-2027");
+  const fall = semesterRange("fall-2025");
+  const spring = semesterRange("spring-2026");
 
   const previousFallTxns = txns.filter((txn) => inRange(txn.date, fall.startMs, fall.endMs));
   const springTxns = txns.filter((txn) => inRange(txn.date, spring.startMs, spring.endMs));
