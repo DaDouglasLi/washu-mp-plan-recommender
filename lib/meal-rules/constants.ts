@@ -3,7 +3,6 @@ import {
   MealPlan,
   MealPlanId,
   PredictionSemester,
-  SemesterRange,
 } from "@/types/domain";
 
 export const MEAL_PLANS: MealPlan[] = [
@@ -15,20 +14,20 @@ export const MEAL_PLANS: MealPlan[] = [
   { id: "off-campus", name: "Off-Campus", points: 544, costUsd: 844 },
 ];
 
-export const SEMESTERS: SemesterRange[] = [
-  {
-    key: "fall-2026",
-    label: "Fall 2026",
-    startIso: "2026-08-14",
-    endIso: "2026-12-17",
+export const SEMESTER_BOUNDARY_RULES = {
+  fall: {
+    startMonth: 8,
+    startDay: 20,
+    endMonth: 12,
+    endDay: 20,
   },
-  {
-    key: "spring-2027",
-    label: "Spring 2027",
-    startIso: "2027-01-15",
-    endIso: "2027-05-13",
+  spring: {
+    startMonth: 1,
+    startDay: 10,
+    endMonth: 5,
+    endDay: 10,
   },
-];
+} as const;
 
 export const PLAN_BY_ID: Record<MealPlanId, MealPlan> = MEAL_PLANS.reduce(
   (acc, plan) => {
