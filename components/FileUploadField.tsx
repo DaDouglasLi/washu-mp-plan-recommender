@@ -1,10 +1,10 @@
 "use client";
 
-import { ChangeEvent } from "react";
+import { ChangeEvent, ReactNode } from "react";
 
 interface FileUploadFieldProps {
   label: string;
-  description: string;
+  description: ReactNode;
   accept?: string;
   required?: boolean;
   onFileSelect: (file: File | null) => void;

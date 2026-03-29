@@ -28,7 +28,7 @@ export default function Home() {
 
         <SectionCard
           title="1) Choose Prediction Mode"
-          subtitle="If you are going to deside your plan for fall semester, choose fall mode; if you are going to deside your plan for spring semester, choose spring"
+          subtitle="If you are going to deside your plan for fall semester, choose fall mode; if you are going to deside your plan for spring semester, choose spring mode."
         >
           <div className="grid gap-4 md:grid-cols-2">
             <button

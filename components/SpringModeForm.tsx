@@ -263,7 +263,21 @@ export function SpringModeForm() {
         <div className="grid gap-4">
           <FileUploadField
             label="Meal transactions CSV"
-            description="Upload the Mealpoints account statement CSV from Atrium: Account Management -> Account Statements -> choose Mealpoints -> set period to Last 9 Month."
+            description={
+              <>
+                Upload the Mealpoints account statement CSV from{" "}
+                <a
+                  href="https://atrium.wustl.edu/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-indigo-700 underline underline-offset-2"
+                >
+                  WashU Campus Card Portal
+                </a>
+                : Account Management -&gt; Account Statements -&gt; choose Mealpoints -&gt; set
+                period to Last 9 Month.
+              </>
+            }
             required
             accept=".csv"
             fileName={mealHistory.fileName}
