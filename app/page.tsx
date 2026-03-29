@@ -28,7 +28,7 @@ export default function Home() {
 
         <SectionCard
           title="1) Choose Prediction Mode"
-          subtitle="Spring and Fall are now separate forms with separate upload fields and separate state."
+          subtitle="If you are going to deside your plan for fall semester, choose fall mode; if you are going to deside your plan for spring semester, choose spring"
         >
           <div className="grid gap-4 md:grid-cols-2">
             <button
