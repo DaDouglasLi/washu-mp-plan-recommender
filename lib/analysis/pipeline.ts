@@ -24,6 +24,7 @@ export interface PipelineInput {
   mode: PredictionSemester;
   classYear: ClassYear;
   livingOnCampus: boolean;
+  previousLivingOnCampus?: boolean;
   mealRows: GenericRow[];
   previousFallCampusTime?: OnCampusTimeBlock[];
   previousSpringCampusTime?: OnCampusTimeBlock[];
@@ -160,18 +161,22 @@ export function runFullAnalysis(input: PipelineInput): PipelineOutput {
     );
   }
   const categorized = categorizeTransactions(relevantTransactions.selected);
+  const previousLivingOnCampus =
+    input.mode === "fall"
+      ? (input.previousLivingOnCampus ?? input.livingOnCampus)
+      : input.livingOnCampus;
 
   const previousFall = resolveScheduleFeatures(
     input.previousFallCampusTime,
     "Previous fall on-campus time",
-    input.livingOnCampus,
+    previousLivingOnCampus,
   );
   const previousSpring =
     input.mode === "fall"
       ? resolveScheduleFeatures(
           input.previousSpringCampusTime,
           "Previous spring on-campus time",
-          input.livingOnCampus,
+          previousLivingOnCampus,
         )
       : null;
   const futureSpring =
@@ -261,7 +266,7 @@ export function runFullAnalysis(input: PipelineInput): PipelineOutput {
       previousSpringTimeBlocks: previousSpring?.blockCount ?? 0,
       futureSpringTimeBlocks: futureSpring?.blockCount ?? 0,
       futureFallTimeBlocks: futureFall?.blockCount ?? 0,
-      usedFullDayCampusAssumption: input.livingOnCampus,
+      usedFullDayCampusAssumption: previousLivingOnCampus || input.livingOnCampus,
     },
     prediction,
     recommendation,

@@ -69,11 +69,12 @@ export default function Home() {
 
         <SectionCard title="5) Methodology & Caveats">
           <ul className="space-y-2 text-sm text-slate-700">
-            <li>- Deterministic local heuristics classify spending into lunch/snack/dinner/misc categories.</li>
-            <li>- Off-campus users enter manual on-campus time blocks instead of uploading schedules.</li>
-            <li>- A modest shortfall is acceptable and often cheaper than buying a higher plan.</li>
-            <li>- For spring, fall rollover is included; on-campus users use a full-day campus assumption.</li>
-            <li>- “Suggested Balance” is intentionally ignored in recommendation logic.</li>
+            <li>- Meal transactions are used to measure your real spending pattern: how often you buy lunch, snacks, and dinner, how much you usually spend, and how that changes week to week.</li>
+            <li>- On-campus time inputs are used to estimate when you are likely to need food on campus. Lunch-time presence, evening presence, and long daytime gaps all affect predicted future demand.</li>
+            <li>- In spring mode, the model uses your previous fall behavior to estimate next spring. In fall mode, it uses your previous fall and current spring behavior together to estimate next fall.</li>
+            <li>- If you lived on campus during a semester, the model assumes full-day campus presence for that semester, so schedule input is not required.</li>
+            <li>- The recommendation compares eligible meal plans against predicted spending, rollover rules, likely leftover waste, and reasonable out-of-pocket shortfall to find the cheapest practical option.</li>
+            <li>- Results are directional estimates, not guarantees. Unusual habits, travel, guests, or major routine changes can make actual spending differ.</li>
           </ul>
         </SectionCard>
 

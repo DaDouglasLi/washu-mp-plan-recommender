@@ -19,6 +19,7 @@ import { ClassYear, OnCampusTimeBlock } from "@/types/domain";
 
 interface FallFormSnapshot {
   classYear: ClassYear;
+  livedOnCampusLastYear: boolean;
   livingOnCampus: boolean;
   mealHistory: UploadSlotState;
   previousFallTime: OnCampusTimeBlock[];
@@ -31,6 +32,9 @@ let inMemoryFallSnapshot: FallFormSnapshot | null = null;
 export function FallModeForm() {
   const [classYear, setClassYear] = useState<ClassYear>(
     inMemoryFallSnapshot?.classYear ?? "sophomore",
+  );
+  const [livedOnCampusLastYear, setLivedOnCampusLastYear] = useState(
+    inMemoryFallSnapshot?.livedOnCampusLastYear ?? true,
   );
   const [livingOnCampus, setLivingOnCampus] = useState(
     inMemoryFallSnapshot?.livingOnCampus ?? true,
@@ -51,10 +55,10 @@ export function FallModeForm() {
   const [error, setError] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const previousFallErrors = livingOnCampus
+  const previousFallErrors = livedOnCampusLastYear
     ? []
     : validateOnCampusTimeBlocks(previousFallTime, "Previous fall on-campus time");
-  const previousSpringErrors = livingOnCampus
+  const previousSpringErrors = livedOnCampusLastYear
     ? []
     : validateOnCampusTimeBlocks(previousSpringTime, "Previous spring on-campus time");
   const futureFallErrors = livingOnCampus
@@ -73,19 +77,18 @@ export function FallModeForm() {
     }
   }
 
-  if (!livingOnCampus) {
-    blockingRequirements.push(
-      ...previousFallErrors,
-      ...previousSpringErrors,
-      ...futureFallErrors,
-    );
-  }
+  blockingRequirements.push(
+    ...previousFallErrors,
+    ...previousSpringErrors,
+    ...futureFallErrors,
+  );
 
   const canAnalyze = blockingRequirements.length === 0;
 
   useEffect(() => {
     inMemoryFallSnapshot = {
       classYear,
+      livedOnCampusLastYear,
       livingOnCampus,
       mealHistory,
       previousFallTime,
@@ -95,11 +98,18 @@ export function FallModeForm() {
   }, [
     classYear,
     futureFallTime,
+    livedOnCampusLastYear,
     livingOnCampus,
     mealHistory,
     previousFallTime,
     previousSpringTime,
   ]);
+
+  function updateLivedOnCampusLastYear(nextValue: boolean) {
+    setLivedOnCampusLastYear(nextValue);
+    setResult(null);
+    setError("");
+  }
 
   function updateLivingOnCampus(nextValue: boolean) {
     setLivingOnCampus(nextValue);
@@ -157,6 +167,7 @@ export function FallModeForm() {
         mode: "fall",
         classYear,
         livingOnCampus,
+        previousLivingOnCampus: livedOnCampusLastYear,
         mealRows,
         previousFallCampusTime: previousFallTime,
         previousSpringCampusTime: previousSpringTime,
@@ -179,7 +190,7 @@ export function FallModeForm() {
         title="2) Fall Student Context"
         subtitle="Fall mode keeps its own student context and its own required upload set."
       >
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <label className="text-sm">
             <span className="mb-1 block font-medium text-slate-800">
               Class year next semester
@@ -199,7 +210,21 @@ export function FallModeForm() {
 
           <label className="text-sm">
             <span className="mb-1 block font-medium text-slate-800">
-              Live on campus?
+              Live on campus last year?
+            </span>
+            <select
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+              value={livedOnCampusLastYear ? "yes" : "no"}
+              onChange={(event) => updateLivedOnCampusLastYear(event.target.value === "yes")}
+            >
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </label>
+
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-slate-800">
+              Live on campus this year?
             </span>
             <select
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
@@ -214,9 +239,13 @@ export function FallModeForm() {
           <div className="rounded-xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm text-violet-900">
             <p className="font-medium">Required fall inputs</p>
             <p className="mt-1">
-              {livingOnCampus
-                ? "Meal transactions CSV only. On-campus students use the full-day campus assumption."
-                : "Meal transactions CSV, previous fall on-campus time, previous spring on-campus time, and future fall on-campus time."}
+              {livedOnCampusLastYear && livingOnCampus
+                ? "Meal transactions CSV only. Full-day campus presence is assumed for last year and this year."
+                : livedOnCampusLastYear
+                  ? "Meal transactions CSV and future fall on-campus time only. Last-year schedules use the full-day campus assumption."
+                  : livingOnCampus
+                    ? "Meal transactions CSV, previous fall on-campus time, and previous spring on-campus time. Future fall uses the full-day campus assumption."
+                    : "Meal transactions CSV, previous fall on-campus time, previous spring on-campus time, and future fall on-campus time."}
             </p>
           </div>
         </div>
@@ -254,34 +283,51 @@ export function FallModeForm() {
           />
         </div>
 
-        {!livingOnCampus ? (
+        {!livedOnCampusLastYear || !livingOnCampus ? (
           <div className="mt-4 space-y-4">
-            <OnCampusTimeSection
-              title="Previous fall semester on-campus time"
-              description="Enter the days and time ranges when you were typically on campus during your previous fall semester."
-              value={previousFallTime}
-              errors={previousFallErrors}
-              onChange={updatePreviousFallTime}
-            />
-            <OnCampusTimeSection
-              title="Previous spring semester on-campus time"
-              description="Enter the days and time ranges when you were typically on campus during your previous spring semester."
-              value={previousSpringTime}
-              errors={previousSpringErrors}
-              onChange={updatePreviousSpringTime}
-            />
-            <OnCampusTimeSection
-              title="Future fall semester on-campus time"
-              description="Enter the days and time ranges when you expect to be on campus during your future fall semester."
-              value={futureFallTime}
-              errors={futureFallErrors}
-              onChange={updateFutureFallTime}
-            />
+            {livedOnCampusLastYear ? (
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
+                Living on campus last year is set to <strong>Yes</strong>, so previous fall and
+                previous spring schedule input is skipped and the model assumes full-day campus
+                presence for those semesters.
+              </div>
+            ) : (
+              <>
+                <OnCampusTimeSection
+                  title="Previous fall semester on-campus time"
+                  description="Enter the days and time ranges when you were typically on campus during your previous fall semester."
+                  value={previousFallTime}
+                  errors={previousFallErrors}
+                  onChange={updatePreviousFallTime}
+                />
+                <OnCampusTimeSection
+                  title="Previous spring semester on-campus time"
+                  description="Enter the days and time ranges when you were typically on campus during your previous spring semester."
+                  value={previousSpringTime}
+                  errors={previousSpringErrors}
+                  onChange={updatePreviousSpringTime}
+                />
+              </>
+            )}
+            {livingOnCampus ? (
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
+                Living on campus this year is set to <strong>Yes</strong>, so future fall schedule
+                input is skipped and the model assumes full-day campus presence for that semester.
+              </div>
+            ) : (
+              <OnCampusTimeSection
+                title="Future fall semester on-campus time"
+                description="Enter the days and time ranges when you expect to be on campus during your future fall semester."
+                value={futureFallTime}
+                errors={futureFallErrors}
+                onChange={updateFutureFallTime}
+              />
+            )}
           </div>
         ) : (
           <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
-            Living on campus is set to <strong>Yes</strong>, so schedule input is skipped and the
-            model assumes full-day campus presence.
+            Living on campus last year and this year are both set to <strong>Yes</strong>, so all
+            schedule input is skipped and the model assumes full-day campus presence.
           </div>
         )}
 
@@ -337,7 +383,7 @@ export function FallModeForm() {
             </div>
             {result.stats.usedFullDayCampusAssumption ? (
               <p className="text-sm text-slate-600">
-                Full-day campus presence was assumed because you live on campus.
+                Full-day campus presence was assumed for the semesters you marked as on campus.
               </p>
             ) : null}
             <ResultsDashboard result={result} />
